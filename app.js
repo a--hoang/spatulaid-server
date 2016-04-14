@@ -4,7 +4,7 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-
+var fs = require('fs');
 var routes = require('./routes/index');
 
 var app = express();
@@ -30,6 +30,33 @@ spatulaid.on('value', function(data) {
 }, function (errorObject) {
   console.log("The read failed: " + errorObject.code);
 });
+
+//Particle poll for data
+var Particle = require('particle-api-js');
+var particle = new Particle();
+
+var filename = "./secrets.json";
+var config;
+var particle_access_token;
+var particle_refresh_token;
+try {
+  config = require(filename);
+}
+catch (err) {
+  config = {}
+  console.log("unable to read file '" + fileName + "': ", err)
+}
+
+particle.login({username: config.particle_username , password: config.particle_password}).then(
+  function(data){
+    console.log('API call completed on promise resolve: ', data.body);
+    particle_access_token = data.body.access_token;
+    particle_refresh_token = data.body.refresh_token;
+  },
+  function(err) {
+    console.log('API call completed on promise fail: ', err);
+  }
+);
 
 app.use('/', routes);
 
