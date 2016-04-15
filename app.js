@@ -1,21 +1,18 @@
 var express = require('express');
 var path = require('path');
-var favicon = require('serve-favicon');
 var logger = require('morgan');
-var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var fs = require('fs');
 var routes = require('./routes/index');
 
 var app = express();
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.set('view engine', 'html');
+
+app.use('/', routes);
 
 //Firebase poll for data
 var Firebase = require("firebase");
@@ -48,13 +45,24 @@ particle.login({username: config.particle_username , password: config.particle_p
     console.log('API call completed on promise resolve: ', data.body);
     particle_access_token = data.body.access_token;
     particle_refresh_token = data.body.refresh_token;
+
+    //Get events and send to
+    particle.getEventStream({
+      deviceId: 'mine', 
+      auth: particle_access_token }).then(function(stream) {
+        stream.on('event', function(data) {
+          spatulaid.push(data);
+          console.log("Particle Event: " + data);
+        });
+    });
   },
   function(err) {
     console.log('API call completed on promise fail: ', err);
   }
 );
 
-app.use('/', routes);
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -86,6 +94,5 @@ app.use(function(err, req, res, next) {
     error: {}
   });
 });
-
 
 module.exports = app;
